@@ -1,0 +1,8 @@
+/bin/
+/env/
+/obj/
+MicroBlog.pyproj
+MicroBlog.pyproj.user
+ptvs_virtualenv_proxy.py
+web.config
+web.debug.config
