@@ -8,3 +8,5 @@ ptvs_virtualenv_proxy.py
 web.config
 web.debug.config
 /.idea/
+app.db
+/db_repository/
