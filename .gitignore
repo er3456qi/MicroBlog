@@ -1,4 +1,4 @@
-__pycache__/*
+*.pyc
 /bin/
 /env/
 /obj/
@@ -7,4 +7,4 @@ MicroBlog.pyproj.user
 ptvs_virtualenv_proxy.py
 web.config
 web.debug.config
-.gitignore
+/.idea/
