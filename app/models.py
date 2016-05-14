@@ -1,10 +1,27 @@
 from app import db
+from hashlib import md5
 
 
 class User(db.Model):
     id = db.Column(db.Integer, primary_key = True)
     nickname = db.Column(db.String(64), index = True, unique = True)
     email = db.Column(db.String(120), index = True, unique = True)
+    posts = db.relationship('Post', backref = 'author', lazy = 'dynamic')
+    about_me = db.Column(db.String(140))
+    last_seen = db.Column(db.DateTime)
+
+    def avatar(self, size):
+        """
+        为了美观.用户需要头像,我们不需要在自己的服务器上处理大量的上传图片,
+        我们依赖Gravatar服务为我们生成用户头像
+        你只需要创建一个用户邮箱的 MD5 哈希，然后将其加入 URL中，像上面你看见的。
+        在邮箱 MD5 后，你还需要提供一个定制头像尺寸的数字。
+        d=mm 决定什么样的图片占位符当用户没有 Gravatar 账户。
+        mm 选项将会返回一个“神秘人”图片，一个人灰色的轮廓。
+        s=N 选项要求头像按照以像素为单位的给定尺寸缩放。
+        详见: https://gravatar.com/site/implement/images
+        """
+        return 'http://www.gravatar.com/avatar/' + md5(self.email).hexdigest() + '?=mm&s=' + str(size)
 
     def __repr__(self):
         # __repr__ 方法告诉 Python 如何打印这个类的对象。我们将用它来调试。
