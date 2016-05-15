@@ -82,6 +82,7 @@ def after_login(resp):
         nickname = resp.nickname
         if nickname is None or nickname == '':
             nickname = resp.email.split('@')[0]
+        nickname = User.make_unique_nickname(nickname)
         user = User(nickname=nickname, email=resp.email)
         db.session.add(user)
         db.session.commit()
@@ -137,7 +138,7 @@ def user(nickname):
 @app.route('/edit', methods=['GET', 'POST'])
 @login_required
 def edit():
-    form = EditForm()
+    form = EditForm(g.user.nickname)
     if form.validate_on_submit():
         g.user.nickname = form.nickname.data
         g.user.about_me = form.about_me.data
@@ -149,3 +150,20 @@ def edit():
         form.nickname.data = g.user.nickname
         form.about_me.data = g.user.about_me
     return render_template('edit.html', form=form)
+
+
+@app.errorhandler(404)
+def page_not_found(error):
+    return render_template('404.html'), 404
+
+
+@app.errorhandler(500)
+def internal_error(error):
+    """
+    需要注意的是,这里使用了 rollback 声明。
+    这是很有必要的因为这个函数是被作为异常的结果被调用。
+    如果异常是被一个数据库错误触发，数据库的会话会处于一个不正常的状态，
+    因此我们必须把会话回滚到正常工作状态在渲染 500 错误页模板之前。
+    """
+    db.session.rollback()
+    return render_template('500.html'), 500

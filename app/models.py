@@ -23,6 +23,21 @@ class User(db.Model):
         """
         return 'http://www.gravatar.com/avatar/' + md5(self.email).hexdigest() + '?=mm&s=' + str(size)
 
+    @staticmethod
+    def make_unique_nickname(nickname):
+        """
+        防止出现重名
+        """
+        if User.query.fileter_by(nickname=nickname).first() is None:
+            return nickname
+        version, new_nickname = 2, ''
+        while True:
+            new_nickname = nickname + str(version)
+            if User.query.fileter_by(nickname=new_nickname).first() is None:
+                break
+            version += 1
+        return new_nickname
+
     def __repr__(self):
         # __repr__ 方法告诉 Python 如何打印这个类的对象。我们将用它来调试。
         return '<User {}>'.format(self.nickname)
