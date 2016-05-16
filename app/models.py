@@ -1,6 +1,14 @@
 from app import db
 from hashlib import md5
 
+# 一个多对多的关注与被关注的关系表
+# 我们并没有像对 users 和 posts 一样把它声明为一个模式。
+# 因为这是一个辅助表，我们使用 flask-sqlalchemy 中的低级的 APIs 来创建没有使用关联模式。
+followers = db.Table('followers',
+                     db.Column('follower_id', db.Integer, db.ForeignKey('user.id')),
+                     db.Column('followed_id', db.Integer, db.ForeignKey('user.id'))
+                     )
+
 
 class User(db.Model):
     id = db.Column(db.Integer, primary_key = True)
@@ -9,6 +17,44 @@ class User(db.Model):
     posts = db.relationship('Post', backref = 'author', lazy = 'dynamic')
     about_me = db.Column(db.String(140))
     last_seen = db.Column(db.DateTime)
+    """
+    ‘User’ 是这种关系中的右边的表(实体)(左边的表/实体是父类)。
+    因为定义一个自我指向的关系，我们在两边使用同样的类。
+    secondary 指明了用于这种关系的辅助表。
+    primaryjoin 表示辅助表中连接左边实体(发起关注的用户)的条件。
+    注意因为 followers 表不是一个模式，获得字段名的语法有些怪异。
+    secondaryjoin 表示辅助表中连接右边实体(被关注的用户)的条件。
+    backref 定义这种关系将如何从右边实体进行访问。
+    当我们做出一个名为 followed 的查询的时候，将会返回所有跟左边实体联系的右边的用户。
+    当我们做出一个名为 followers 的查询的时候，将会返回一个所有跟右边联系的左边的用户。
+    lazy 指明了查询的模式。dynamic 模式表示直到有特定的请求才会运行查询，这是对性能有很好的考虑。
+    lazy 是与 backref 中的同样名称的参数作用是类似的，但是这个是应用于常规查询。
+    """
+    followed = db.relationship('User',
+                               secondary=followers,
+                               primaryjoin=(followers.c.follower_id == id),
+                               secondaryjoin=(followers.c.followed_id == id),
+                               backref=db.backref('followers', lazy='dynamic'),
+                               lazy='dynamic'
+                               )
+
+    def follow(self, user):
+        if not self.is_following(user):
+            self.followed.append(user)
+            return self
+
+    def unfollow(self, user):
+        if self.is_followed.remove(user):
+            self.followed.remove(user)
+            return self
+
+    def is_following(self, user):
+        return self.followed.filter(followers.c.followed_id == user.id).count() > 0
+
+    def followed_posts(self):
+        return Post.query.join(followers, (followers.c.followed_id == Post.user_id))\
+                        .filter(followers.c.follower_id == self.id)\
+                        .order_by(Post.timestamp.desc())
 
     def avatar(self, size):
         """
@@ -78,3 +124,6 @@ class Post(db.Model):
 
     def __repr__(self):
         return '<Post {}>'.format(self.body)
+
+
+
